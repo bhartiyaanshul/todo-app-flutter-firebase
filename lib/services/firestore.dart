@@ -23,7 +23,7 @@ class FirestoreService{
     });
   }
 
-  Future<void> deleteTodo(String docID) {
-    return todos.doc(docID).delete();
+  Future<void> deleteTodo(String docID) async {
+    await todos.doc(docID).delete();
   } 
 }

@@ -66,11 +66,11 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 133, 196, 249),
+        backgroundColor: const Color.fromARGB(255, 189, 172, 250),
         title: const Text('Todo App'),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color.fromARGB(255, 133, 196, 249),
+        backgroundColor: const Color.fromARGB(255, 189, 172, 250),
         onPressed: openTodoBox,
         child: const Icon(Icons.add),
       ),
@@ -94,9 +94,9 @@ class _HomePageState extends State<HomePage> {
                   child: Material(
                     child: InkWell(
                       child: Container(
-                        margin: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.fromLTRB(10, 10, 10, 0),
                         padding: const EdgeInsets.all(10),
-                        color: const Color.fromARGB(255, 224, 219, 219),
+                        color: const Color.fromARGB(255, 224, 215, 254),
                         child: ListTile(
                             title: Text(title),
                             subtitle: Text(desc),
@@ -108,7 +108,7 @@ class _HomePageState extends State<HomePage> {
                                   onPressed: () => openTodoBox(docID: docID),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete),
+                                  icon: const Icon(Icons.delete, color: Color.fromARGB(255, 185, 70, 61)),
                                   onPressed: () =>
                                       firestoreService.deleteTodo(docID),
                                 ),
@@ -118,8 +118,8 @@ class _HomePageState extends State<HomePage> {
                       onTap: () {
                         Navigator.of(context).push(PageRouteBuilder(
                           opaque: false,
-                          pageBuilder: (_, __, ___) =>
-                              TodoViewer(docID: docID, title: title, desc: desc),
+                          pageBuilder: (_, __, ___) => TodoViewer(
+                              docID: docID, title: title, desc: desc),
                         ));
                       },
                     ),
@@ -136,7 +136,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class TodoViewer extends StatelessWidget {
+class TodoViewer extends StatefulWidget {
   final String docID;
   final String title;
   final String desc;
@@ -148,19 +148,39 @@ class TodoViewer extends StatelessWidget {
       required this.desc});
 
   @override
+  State<TodoViewer> createState() => _TodoViewerState();
+}
+
+class _TodoViewerState extends State<TodoViewer> {
+  final FirestoreService firestoreService = FirestoreService();
+
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: MediaQuery.of(context).size.height,
       child: Hero(
-          tag: docID,
+          tag: widget.docID,
           child: Material(
+            color: const Color.fromARGB(255, 224, 215, 254),
             child: InkWell(
               onTap: () => Navigator.of(context).pop(),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Text(title,style: const TextStyle(fontSize: 30),),
-                  Text(desc),
+                  Text(widget.title, style: const TextStyle(fontSize: 30)),
+                  Text(widget.desc, style: const TextStyle(fontSize: 15)),
+                  // IconButton(
+                  //   icon: const Icon(Icons.edit),
+                  //   onPressed: () => openTodoBox(docID: docID),
+                  // ),
+                  IconButton(
+                      icon: const Icon(Icons.delete, color: Color.fromARGB(255, 185, 70, 61)),
+                      onPressed: () {
+                        firestoreService
+                            .deleteTodo(widget.docID)
+                            .then((value) => Navigator.of(context).pop());
+                      }),
                 ],
               ),
             ),
