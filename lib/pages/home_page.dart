@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:todo_firebase/services/firestore.dart';
+import 'package:todo_firebase/pages/todo_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,10 +10,74 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final FirestoreService firestoreService = FirestoreService();
-
+  bool isLoading = true;
+  List<Map<String, dynamic>> todos = [];
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descController = TextEditingController();
+
+  final todoCollectionRef = FirebaseFirestore.instance.collection("todos");
+
+  void toggleLoading() {
+    setState(() {
+      isLoading = !isLoading;
+    });
+  }
+
+  Future<void> createTodo({
+    required String title,
+    required String description,
+  }) async {
+    try {
+      await todoCollectionRef.add({
+        "title": title,
+        "description": description,
+        "createdAt": Timestamp.now(),
+        "updatedAt": Timestamp.now(),
+      });
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTodos() async {
+    final docsRef = await todoCollectionRef.get();
+    return docsRef.docs.map((doc) => {...doc.data(), "id": doc.id}).toList();
+  }
+
+  Future<Map<String, dynamic>?> getTodo(String id) async {
+    final docRef = await todoCollectionRef.doc(id).get();
+    return docRef.data();
+  }
+
+  Future<void> updateTodo(
+    String id, {
+    String? title,
+    String? description,
+  }) async {
+    return todoCollectionRef.doc(id).update(
+      {
+        if (title != null) "title": title,
+        if (description != null) "description": description,
+      },
+    );
+  }
+
+  Future<void> deleteTodo(String id) async {
+    return await todoCollectionRef.doc(id).delete();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getData();
+  }
+
+  getData() async {
+    todos = await getTodos();
+    setState(() {
+      isLoading = false;
+    });
+  }
 
   void openTodoBox({String? docID}) {
     showDialog(
@@ -42,24 +106,30 @@ class _HomePageState extends State<HomePage> {
         actions: [
           Center(
             child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  toggleLoading();
                   if (docID == null) {
-                    firestoreService.addTodo(
-                        titleController.text, descController.text);
+                    await createTodo(
+                        title: titleController.text,
+                        description: descController.text);
                   } else {
-                    firestoreService.updateTodo(
-                        docID, titleController.text, descController.text);
+                    await updateTodo(docID,
+                        title: titleController.text,
+                        description: descController.text);
                   }
-
+                  getData();
                   titleController.clear();
                   descController.clear();
-                  Navigator.of(context).pop();
                 },
-                child: const Text("Add Todo")),
+                child: Text("${docID == null ? "Add" : "Update"} Todo")),
           )
         ],
       ),
-    );
+    ).whenComplete(() {
+      titleController.clear();
+      descController.clear();
+    });
   }
 
   @override
@@ -69,122 +139,64 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: const Color.fromARGB(255, 189, 172, 250),
         title: const Text('Todo App'),
       ),
+      body: Center(
+          child: isLoading
+              ? const CircularProgressIndicator()
+              : ListView.builder(
+                  itemCount: todos.length,
+                  itemBuilder: (context, index) {
+                    final todo = todos[index];
+                    return ListTile(
+                      title: Text(todo['title']),
+                      subtitle: Text(todo['description']),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              titleController.text = todo['title'];
+                              descController.text = todo['description'];
+                              openTodoBox(docID: todo['id']);
+                            },
+                            icon: const Icon(
+                              Icons.edit,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              toggleLoading();
+                              await deleteTodo(todo['id']);
+                              getData();
+                            },
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TodoViewer(
+                                todo: todo,
+                                onDelete: (String id) async {
+                                  toggleLoading();
+                                  await deleteTodo(id);
+                                  getData();
+                                }),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                )),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color.fromARGB(255, 189, 172, 250),
         onPressed: openTodoBox,
         child: const Icon(Icons.add),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: firestoreService.getTodos(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            List todoList = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: todoList.length,
-              itemBuilder: (context, index) {
-                DocumentSnapshot todo = todoList[index];
-                String docID = todo.id;
-
-                Map<String, dynamic> todoData =
-                    todo.data() as Map<String, dynamic>;
-                String title = todoData['title'];
-                String desc = todoData['description'];
-                return Hero(
-                  tag: docID,
-                  child: Material(
-                    child: InkWell(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-                        padding: const EdgeInsets.all(10),
-                        color: const Color.fromARGB(255, 224, 215, 254),
-                        child: ListTile(
-                            title: Text(title),
-                            subtitle: Text(desc),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => openTodoBox(docID: docID),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Color.fromARGB(255, 185, 70, 61)),
-                                  onPressed: () =>
-                                      firestoreService.deleteTodo(docID),
-                                ),
-                              ],
-                            )),
-                      ),
-                      onTap: () {
-                        Navigator.of(context).push(PageRouteBuilder(
-                          opaque: false,
-                          pageBuilder: (_, __, ___) => TodoViewer(
-                              docID: docID, title: title, desc: desc),
-                        ));
-                      },
-                    ),
-                  ),
-                );
-              },
-            );
-          } else {
-            return (const Text('No TODOs yet!'));
-          }
-        },
-      ),
-    );
-  }
-}
-
-class TodoViewer extends StatefulWidget {
-  final String docID;
-  final String title;
-  final String desc;
-
-  const TodoViewer(
-      {super.key,
-      required this.docID,
-      required this.title,
-      required this.desc});
-
-  @override
-  State<TodoViewer> createState() => _TodoViewerState();
-}
-
-class _TodoViewerState extends State<TodoViewer> {
-  final FirestoreService firestoreService = FirestoreService();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height,
-      child: Hero(
-          tag: widget.docID,
-          child: Material(
-            color: const Color.fromARGB(255, 224, 215, 254),
-            child: InkWell(
-              onTap: () => Navigator.of(context).pop(),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(widget.title, style: const TextStyle(fontSize: 30)),
-                  Text(widget.desc, style: const TextStyle(fontSize: 15)),
-                  // IconButton(
-                  //   icon: const Icon(Icons.edit),
-                  //   onPressed: () => openTodoBox(docID: docID),
-                  // ),
-                  IconButton(
-                      icon: const Icon(Icons.delete, color: Color.fromARGB(255, 185, 70, 61)),
-                      onPressed: () {
-                        firestoreService
-                            .deleteTodo(widget.docID)
-                            .then((value) => Navigator.of(context).pop());
-                      }),
-                ],
-              ),
-            ),
-          )),
     );
   }
 }
