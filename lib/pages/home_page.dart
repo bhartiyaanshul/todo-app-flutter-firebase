@@ -58,6 +58,7 @@ class _HomePageState extends State<HomePage> {
       {
         if (title != null) "title": title,
         if (description != null) "description": description,
+        "updatedAt": Timestamp.now(),
       },
     );
   }
@@ -146,49 +147,53 @@ class _HomePageState extends State<HomePage> {
                   itemCount: todos.length,
                   itemBuilder: (context, index) {
                     final todo = todos[index];
-                    return ListTile(
-                      title: Text(todo['title']),
-                      subtitle: Text(todo['description']),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              titleController.text = todo['title'];
-                              descController.text = todo['description'];
-                              openTodoBox(docID: todo['id']);
-                            },
-                            icon: const Icon(
-                              Icons.edit,
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ListTile(
+                        tileColor: const Color.fromARGB(255, 224, 215, 254),
+                        title: Text(todo['title']),
+                        subtitle: Text(todo['description']),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                titleController.text = todo['title'];
+                                descController.text = todo['description'];
+                                openTodoBox(docID: todo['id']);
+                              },
+                              icon: const Icon(
+                                Icons.edit,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () async {
-                              toggleLoading();
-                              await deleteTodo(todo['id']);
-                              getData();
-                            },
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
+                            IconButton(
+                              onPressed: () async {
+                                toggleLoading();
+                                await deleteTodo(todo['id']);
+                                getData();
+                              },
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.red,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TodoViewer(
+                                  todo: todo,
+                                  onDelete: (String id) async {
+                                    toggleLoading();
+                                    await deleteTodo(id);
+                                    getData();
+                                  }),
+                            ),
+                          );
+                        },
                       ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TodoViewer(
-                                todo: todo,
-                                onDelete: (String id) async {
-                                  toggleLoading();
-                                  await deleteTodo(id);
-                                  getData();
-                                }),
-                          ),
-                        );
-                      },
                     );
                   },
                 )),
