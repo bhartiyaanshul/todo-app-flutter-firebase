@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:todo_firebase/pages/auth_services.dart';
 import 'package:todo_firebase/pages/todo_page.dart';
 
 class HomePage2 extends StatefulWidget {
@@ -10,6 +12,9 @@ class HomePage2 extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage2> {
+
+  final user = FirebaseAuth.instance.currentUser;
+
   bool isLoading = true;
   List<Map<String, dynamic>> todos = [];
   final TextEditingController titleController = TextEditingController();
@@ -32,7 +37,8 @@ class _HomePageState extends State<HomePage2> {
         'title': title,
         "description": description,
         'createdAt': Timestamp.now(),
-        'updatedAt': Timestamp.now()
+        'updatedAt': Timestamp.now(),
+        'createdBy': user?.uid
       });
     } catch (e) {
       print("Error: $e");
@@ -40,7 +46,7 @@ class _HomePageState extends State<HomePage2> {
   }
 
   Future<List<Map<String, dynamic>>> getTodos() async {
-    final docRef = await todoCollectionRef.get();
+    final docRef = await todoCollectionRef.where('createdBy',isEqualTo: user?.uid.toString()).get();
     return docRef.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
   }
 
@@ -166,6 +172,7 @@ class _HomePageState extends State<HomePage2> {
       appBar: AppBar(
         title: const Text("Todo App"),
         backgroundColor: const Color.fromARGB(255, 189, 172, 250),
+        // automaticallyImplyLeading: false
       ),
       body: Center(
         child: isLoading 
