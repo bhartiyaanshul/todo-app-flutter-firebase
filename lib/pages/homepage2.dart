@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:todo_firebase/pages/auth_services.dart';
+import 'package:todo_firebase/pages/login_screen.dart';
 import 'package:todo_firebase/pages/todo_page.dart';
 
 class HomePage2 extends StatefulWidget {
@@ -70,8 +72,15 @@ class _HomePageState extends State<HomePage2> {
 
   @override
   void initState() {
-    super.initState();
+    if(user == null){
+      Future(() => Navigator.pushReplacement(
+      context, MaterialPageRoute(builder: (context) => const LoginScreen())));
+    }
+    else{
+      getData();
+    }
     getData();
+    super.initState();
   }
 
   getData() async {
@@ -80,6 +89,10 @@ class _HomePageState extends State<HomePage2> {
       isLoading = false;
     });
   }
+
+  Future<void> signOut() async {
+    final loggedout = await FirebaseAuth.instance.signOut();
+  } 
 
   void openTodoBox({String? docID}) {
     showDialog(
@@ -172,6 +185,14 @@ class _HomePageState extends State<HomePage2> {
       appBar: AppBar(
         title: const Text("Todo App"),
         backgroundColor: const Color.fromARGB(255, 189, 172, 250),
+        actions: [
+          IconButton(
+            onPressed: (){
+              signOut().whenComplete(() => Navigator.pushReplacement(
+                  context, MaterialPageRoute(builder: (context) => const HomePage2())));
+            },
+            icon: const Icon(Icons.logout))
+        ],
         // automaticallyImplyLeading: false
       ),
       body: Center(

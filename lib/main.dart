@@ -25,13 +25,11 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
 
-  final user = FirebaseAuth.instance.currentUser;
-  
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginScreen()
+      home: HomePage2()
     );
   }
 }
