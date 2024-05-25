@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:todo_firebase/pages/auth_services.dart';
 import 'package:todo_firebase/pages/login_screen.dart';
@@ -75,7 +73,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   signup() async {
     final user = await _auth.createUserWithEmailAndPassword(
-        email: emailController.text, 
+        email: emailController.text.trim(), 
         password: passwordController.text
       );
     if (user != null) {

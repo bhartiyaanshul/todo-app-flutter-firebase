@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'todo-firebase-926a8.appspot.com',
     measurementId: 'G-3GNZ04QZ0D',
   );
+
 }
